@@ -1,0 +1,63 @@
+<html>
+    <head>
+    
+    </head>
+    <body>
+        <p>Value = <div id="value"></div></p>
+    </body>
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.2.9.min.js"></script>
+    <script type="text/javascript">
+        // See the Configuring section to configure credentials in the SDK
+        AWS.config.update({accessKeyId: 'AKIAIHGGKTFLUSB7VGAQ', secretAccessKey: 'NWgg0FAuEFVrdEB7UUMQnFeEcHi5UX4wJfm3PWQB'});
+
+        // Configure your region
+        AWS.config.region = 'us-east-1';
+        
+        //var db = new AWS.DynamoDB();
+        //db.listTables(function(err, data) {
+        //    console.log(data.TableNames);
+        //});
+        var dynamodb = new AWS.DynamoDB();
+        dynamodb.listTables(function(err, data) {
+            console.log(data.TableNames);
+        });
+        
+        // Query all the unique measurement ids from the database.
+        var queryUniqueMeasurements = function(callback) {
+            var measurements = {};
+            // Grab a page of results from the provided start key.
+            var queryPage = function(startkey) {
+                var params = {  'TableName': 'WiFiLogger',
+                                'Select': 'SPECIFIC_ATTRIBUTES',
+                                'AttributesToGet': ['Id'] };
+                if (startkey != null) {
+                    params['ExclusiveStartKey'] = startkey;
+                }
+                dynamodb.scan(params, function(err, data) {
+                    if (data) {
+                        data.Items.forEach(function(item) {
+                            // Maintain a set of measurement id values.
+                            measurements[item.Id.S] = true;
+                            //console.log(data.LastEvaluatedKey);
+                            console.log(data);
+                            document.getElementById("value").innerHTML= measurements[item.Id];
+                        });
+                        if (data.LastEvaluatedKey) {
+                            // More data to retrieve, grab another page.
+                            queryPage(data.LastEvaluatedKey);
+                        }
+                        else {
+                            // No more data, invoke the callback with results.
+                            callback(measurements);
+                        }
+                    }
+                });
+            }
+            queryPage();
+        }
+        queryUniqueMeasurements();
+    </script>
+
+
+
+</html>
